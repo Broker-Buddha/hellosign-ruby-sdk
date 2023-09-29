@@ -21,6 +21,7 @@
 # SOFTWARE.
 
 require 'faraday'
+require 'faraday/multipart'
 require 'multi_json'
 require 'mime/types'
 require 'hello_sign/error'
@@ -155,11 +156,11 @@ module HelloSign
 
       if options[:no_auth]
       elsif auth_token
-        connection.authorization :Bearer, auth_token
+        connection.request :authorization, 'Bearer', -> { auth_token }
       elsif api_key
-        connection.basic_auth api_key, ''
+        connection.request :authorization, :basic, api_key, ''
       elsif email_address
-        connection.basic_auth email_address, password
+        connection.request :authorization, :basic, email_address, password
       else
       end
       if proxy_uri
@@ -175,7 +176,7 @@ module HelloSign
     def validate(response)
       if response.status >= 400
         error_class = ERRORS[response.status] || HelloSign::Error::UnknownError
-        error = error_class.new(response.status, response.body, response.to_hash[:url].to_s)
+        error = error_class.new(response.status, response.body, response.env.to_hash[:url].to_s)
         raise error
       end
     end
